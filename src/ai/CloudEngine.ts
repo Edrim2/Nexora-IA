@@ -48,9 +48,8 @@ export class CloudEngine implements AIEngine {
 
     if (!response.ok) {
       throw new Error(
-        \`Servidor de IA respondeu com erro HTTP \${response.status}.\`
-      );
-    }
+  "Servidor de IA respondeu com erro HTTP " + response.status + "."
+);
 
     const data = await response.json() as CloudResponse;
 
