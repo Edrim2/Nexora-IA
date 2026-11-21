@@ -37,7 +37,7 @@ export class CloudEngine implements AIEngine {
       { role: "user", content: prompt }
     ];
 
-    const response = await fetch(\`\${this.baseUrl}/api/chat\`, {
+    const response = await fetch(`${this.baseUrl}/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
