@@ -1,12 +1,7 @@
+
 name = "nexora-core"
 main = "src/index.ts"
 compatibility_date = "2026-11-21"
 
 [vars]
 CORE_VERSION = "0.1.0"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "nexora-core-db"
-database_id = "a854b4dc-4424-41c9-8633-ac2ef734ef93"
-migrations_dir = "migrations"
