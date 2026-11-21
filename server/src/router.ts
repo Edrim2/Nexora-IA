@@ -1,11 +1,12 @@
 
-export interface CoreEnv {
-  CORE_VERSION?: string;
-}
+import {
+  generateCloudResponse,
+  type CoreMessage,
+  type ProviderEnv
+} from "./providers";
 
-interface ChatMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
+export interface CoreEnv extends ProviderEnv {
+  CORE_VERSION?: string;
 }
 
 export async function routeRequest(
@@ -21,16 +22,20 @@ export async function routeRequest(
       version: env.CORE_VERSION ?? "0.1.0",
       engines: {
         local: false,
-        cloud: false
+        cloud: Boolean(
+          env.CLOUD_API_URL &&
+          env.CLOUD_API_KEY &&
+          env.CLOUD_MODEL
+        )
       }
     });
   }
 
   if (url.pathname === "/api/chat" && request.method === "POST") {
-    let body: { messages?: ChatMessage[] };
+    let body: { messages?: CoreMessage[] };
 
     try {
-      body = await request.json() as { messages?: ChatMessage[] };
+      body = await request.json() as { messages?: CoreMessage[] };
     } catch {
       return Response.json(
         { error: "Formato JSON inválido." },
@@ -63,12 +68,30 @@ export async function routeRequest(
       );
     }
 
-    return Response.json(
-      {
-        error: "Nenhum provedor de IA está conectado ao NEXORA CORE ainda."
-      },
-      { status: 503 }
-    );
+    try {
+      const result = await generateCloudResponse(
+        body.messages,
+        env
+      );
+
+      return Response.json({
+        text: result.text,
+        model: result.model
+      });
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : "Erro desconhecido.";
+
+      const status = message === "Provedor de IA não configurado."
+        ? 503
+        : 502;
+
+      return Response.json(
+        { error: message },
+        { status }
+      );
+    }
   }
 
   return Response.json(
