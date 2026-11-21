@@ -1,0 +1,7 @@
+
+name = "nexora-core"
+main = "src/index.ts"
+compatibility_date = "2026-11-21"
+
+[vars]
+CORE_VERSION = "0.1.0"
