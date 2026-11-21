@@ -62,6 +62,7 @@ jobs:
           find /tmp/nexora-icon/res -type f | sort
 
           cp -R /tmp/nexora-icon/res/. android/app/src/main/res/
+                    rm -f android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml
 
           echo "=== FINAL ICON RESOURCES ==="
           find android/app/src/main/res -type f | sort | grep -E 'launcher|mipmap|ic_logo' || true
