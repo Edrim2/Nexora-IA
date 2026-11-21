@@ -15,3 +15,178 @@ h1{font:600 clamp(29px,5vw,42px)/1.13 'Space Grotesk';letter-spacing:-1.6px;marg
 .composer-area{margin-top:auto}.composer-label{display:flex;justify-content:space-between;margin:0 2px 8px;color:#898196;font-size:8px;letter-spacing:1px}.offline{display:flex;align-items:center;gap:6px}.offline i{margin:0;background:#d69b58}.composer{padding:12px 13px 9px;border:1px solid #40334e;border-radius:12px;background:#17131f}.composer textarea{width:100%;resize:vertical;min-height:43px;max-height:150px;border:0;outline:0;background:transparent;color:#f1eafa;font-size:12px;line-height:1.6}.composer textarea::placeholder{color:#777084}.composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#797286;font-size:8px}.composer-bottom button{width:31px;height:31px;display:grid;place-items:center;border:0;border-radius:8px;background:#60417e;color:white}.composer-bottom button:disabled{background:#302a38;color:#71697c;cursor:not-allowed}.footnote{text-align:center;font-size:8px;color:#6e6779;margin:9px 0 0}
 .scrim{display:none}
 @media(max-width:680px){.sidebar{position:fixed;inset:0 auto 0 0;transform:translateX(-105%);transition:transform .2s ease;width:270px;box-shadow:20px 0 55px #0008}.sidebar.open{transform:translateX(0)}.scrim{display:block;position:fixed;inset:0;z-index:4;background:#0009;border:0}.close-menu,.menu-button{display:block}.topbar{padding:0 14px}.content{width:calc(100% - 28px);padding:25px 0 18px}.welcome{margin-bottom:27px}.cards{grid-template-columns:1fr}.cards button{min-height:58px;display:grid;grid-template-columns:22px 1fr;align-items:center;column-gap:9px}.cards button svg{grid-row:span 2}.cards button small{margin-top:-5px}.welcome>p{font-size:10px}.composer-bottom{font-size:7px}}
+
+/* ===== NEXORA CHAT ===== */
+
+.content.has-messages {
+  height: calc(100vh - 62px);
+  min-height: 0;
+  justify-content: flex-start;
+  padding-top: 22px;
+}
+
+.chat-thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  margin-bottom: 22px;
+  scrollbar-width: thin;
+  scrollbar-color: #59446f transparent;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 8px 2px 20px;
+}
+
+.message-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 92%;
+}
+
+.message-row.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-row.assistant {
+  align-self: flex-start;
+}
+
+.message-avatar {
+  width: 31px;
+  height: 31px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #55416e;
+  border-radius: 10px;
+  color: #d9c2fa;
+  background: #241b30;
+}
+
+.message-row.user .message-avatar {
+  color: #c9b7e5;
+  background: #211b2b;
+}
+
+.message-bubble {
+  min-width: 0;
+  max-width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #342a40;
+  border-radius: 4px 13px 13px 13px;
+  background: #17131f;
+}
+
+.message-row.user .message-bubble {
+  border-color: #59416f;
+  border-radius: 13px 4px 13px 13px;
+  background: #292035;
+}
+
+.message-meta {
+  margin-bottom: 7px;
+  color: #b99add;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.message-row.user .message-meta {
+  color: #b8a6d2;
+  text-align: right;
+}
+
+.message-text {
+  color: #e9e2f0;
+  font-size: 12px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 17px;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #b99add;
+  animation: nexora-pulse 1s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: .15s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: .3s;
+}
+
+@keyframes nexora-pulse {
+  0%, 60%, 100% {
+    opacity: .35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.chat-error {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 11px 13px;
+  border: 1px solid #75464c;
+  border-radius: 9px;
+  background: #28171c;
+  color: #e7b7bd;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.chat-error span {
+  color: #c99da4;
+}
+
+.composer textarea:disabled {
+  opacity: .65;
+}
+
+@media(max-width:680px) {
+  .content.has-messages {
+    height: calc(100dvh - 62px);
+    padding-top: 15px;
+  }
+
+  .chat-thread {
+    margin-bottom: 15px;
+  }
+
+  .message-row {
+    max-width: 96%;
+  }
+
+  .message-bubble {
+    padding: 10px 12px;
+  }
+
+  .message-text {
+    font-size: 11px;
+  }
+}
