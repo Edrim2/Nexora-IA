@@ -46,11 +46,11 @@ export class CloudEngine implements AIEngine {
       signal: options.signal
     });
 
-    if (!response.ok) {
+        if (!response.ok) {
       throw new Error(
-  "Servidor de IA respondeu com erro HTTP " + response.status + "."
-);
-
+        "Servidor de IA respondeu com erro HTTP " + response.status + "."
+      );
+    }
     const data = await response.json() as CloudResponse;
 
     if (data.error) {
