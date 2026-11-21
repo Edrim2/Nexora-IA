@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 on:
@@ -6,6 +7,8 @@ on:
     branches: [main]
     paths:
       - "src/**"
+      - "assets/**"
+      - "nexora-android-icon.zip"
       - "package.json"
       - "package-lock.json"
       - "capacitor.config.ts"
@@ -17,6 +20,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,7 +29,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-    
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -41,6 +44,13 @@ jobs:
 
       - name: Generate Android project
         run: npx cap add android
+
+      - name: Apply NEXORA app icon
+        run: |
+          mkdir -p /tmp/nexora-icon
+          unzip -q nexora-android-icon.zip -d /tmp/nexora-icon
+          find android/app/src/main/res/mipmap-* -type f \( -name 'ic_launcher.webp' -o -name 'ic_launcher_round.webp' \) -delete
+          cp -R /tmp/nexora-icon/res/. android/app/src/main/res/
 
       - name: Sync Capacitor
         run: npx cap sync android
