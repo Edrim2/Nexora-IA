@@ -44,6 +44,12 @@ jobs:
 
       - name: Generate Android project
         run: npx cap add android
+        - name: Inspect Android launcher configuration
+  run: |
+    echo "=== ANDROID MANIFEST ==="
+    cat android/app/src/main/AndroidManifest.xml
+    echo "=== LAUNCHER RESOURCES ==="
+    find android/app/src/main/res -iname '*launcher*' -o -iname '*ic_logo*'
 
       - name: Apply NEXORA app icon
         run: |
