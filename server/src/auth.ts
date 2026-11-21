@@ -1,45 +1,56 @@
 
-export interface AuthEnv {
-  CORE_API_TOKEN?: string;
+export interface DeviceDatabase {
+  prepare(query: string): {
+    bind(...values: unknown[]): {
+      first<T>(): Promise<T | null>;
+    };
+  };
 }
 
-async function hashToken(token: string): Promise<Uint8Array> {
+interface DeviceRecord {
+  id: string;
+}
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function hashToken(token: string): Promise<string> {
   const data = new TextEncoder().encode(token);
   const hash = await crypto.subtle.digest("SHA-256", data);
 
-  return new Uint8Array(hash);
+  return toHex(new Uint8Array(hash));
 }
 
-export async function authenticateRequest(
+export async function authenticateDevice(
   request: Request,
-  env: AuthEnv
-): Promise<boolean> {
-  const secret = env.CORE_API_TOKEN;
-
-  if (!secret) {
-    return false;
-  }
-
+  db: DeviceDatabase
+): Promise<string | null> {
   const authorization = request.headers.get("Authorization");
 
   if (!authorization?.startsWith("Bearer ")) {
-    return false;
+    return null;
   }
 
-  const suppliedToken = authorization.slice(7);
+  const token = authorization.slice(7).trim();
 
-  if (!suppliedToken || suppliedToken.length > 512) {
-    return false;
+  if (!token || token.length > 512) {
+    return null;
   }
 
-  const expectedHash = await hashToken(secret);
-  const suppliedHash = await hashToken(suppliedToken);
+  const tokenHash = await hashToken(token);
 
-  let difference = 0;
+  const device = await db.prepare(`
+    SELECT id
+    FROM devices
+    WHERE token_hash = ?
+      AND revoked_at IS NULL
+    LIMIT 1
+  `)
+    .bind(tokenHash)
+    .first<DeviceRecord>();
 
-  for (let i = 0; i < expectedHash.length; i++) {
-    difference |= expectedHash[i] ^ suppliedHash[i];
-  }
-
-  return difference === 0;
+  return device?.id ?? null;
 }
