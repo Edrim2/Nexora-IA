@@ -45,13 +45,22 @@ jobs:
       - name: Generate Android project
         run: npx cap add android
 
+      - name: Configure Kotlin Android
+        run: |
+          sed -i "/classpath 'com.android.tools.build:gradle:8.2.1'/a\\        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21'" android/build.gradle
+
+          sed -i "/apply plugin: 'com.android.application'/a apply plugin: 'kotlin-android'" android/app/build.gradle
+
       - name: Install NEXORA native files
         run: |
-          NATIVE_DIR="android/app/src/main/java/br/com/edrim2/nexoraai"
-          mkdir -p "$NATIVE_DIR"
+          JAVA_DIR="android/app/src/main/java/br/com/edrim2/nexoraai"
+          KOTLIN_DIR="android/app/src/main/kotlin/br/com/edrim2/nexoraai"
 
-          cp native/android/LocalAIPlugin.kt "$NATIVE_DIR/"
-          cp native/android/MainActivity.java "$NATIVE_DIR/"
+          mkdir -p "$JAVA_DIR"
+          mkdir -p "$KOTLIN_DIR"
+
+          cp native/android/MainActivity.java "$JAVA_DIR/"
+          cp native/android/LocalAIPlugin.kt "$KOTLIN_DIR/"
 
       - name: Inspect generated Android configuration
         run: |
@@ -65,7 +74,7 @@ jobs:
           cat android/app/src/main/java/br/com/edrim2/nexoraai/MainActivity.java
 
           echo "=== INSTALLED LOCAL AI PLUGIN ==="
-          cat android/app/src/main/java/br/com/edrim2/nexoraai/LocalAIPlugin.kt
+          cat android/app/src/main/kotlin/br/com/edrim2/nexoraai/LocalAIPlugin.kt
 
       - name: Apply NEXORA app icon
         run: |
