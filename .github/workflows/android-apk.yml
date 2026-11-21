@@ -53,9 +53,13 @@ jobs:
           echo "=== GENERATED ICON RESOURCES ==="
           find android/app/src/main/res -type f | sort | grep -E 'launcher|mipmap|ic_logo' || true
 
-          echo "=== GENERATED MAIN ACTIVITY ==="
-          find android/app/src/main -name "MainActivity.*" -type f
-
+                    echo "=== GENERATED MAIN ACTIVITY ==="
+          find android/app/src/main -name "MainActivity.*" -type f -exec sh -c '
+            for file do
+              echo "=== $file ==="
+              cat "$file"
+            done
+          ' sh {} +
       - name: Apply NEXORA app icon
         run: |
           mkdir -p /tmp/nexora-icon
