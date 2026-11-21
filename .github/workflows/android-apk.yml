@@ -45,6 +45,14 @@ jobs:
       - name: Generate Android project
         run: npx cap add android
 
+      - name: Install NEXORA native files
+        run: |
+          NATIVE_DIR="android/app/src/main/java/br/com/edrim2/nexoraai"
+          mkdir -p "$NATIVE_DIR"
+
+          cp native/android/LocalAIPlugin.kt "$NATIVE_DIR/"
+          cp native/android/MainActivity.java "$NATIVE_DIR/"
+
       - name: Inspect generated Android configuration
         run: |
           echo "=== ANDROID MANIFEST ==="
@@ -53,13 +61,12 @@ jobs:
           echo "=== GENERATED ICON RESOURCES ==="
           find android/app/src/main/res -type f | sort | grep -E 'launcher|mipmap|ic_logo' || true
 
-                    echo "=== GENERATED MAIN ACTIVITY ==="
-          find android/app/src/main -name "MainActivity.*" -type f -exec sh -c '
-            for file do
-              echo "=== $file ==="
-              cat "$file"
-            done
-          ' sh {} +
+          echo "=== INSTALLED MAIN ACTIVITY ==="
+          cat android/app/src/main/java/br/com/edrim2/nexoraai/MainActivity.java
+
+          echo "=== INSTALLED LOCAL AI PLUGIN ==="
+          cat android/app/src/main/java/br/com/edrim2/nexoraai/LocalAIPlugin.kt
+
       - name: Apply NEXORA app icon
         run: |
           mkdir -p /tmp/nexora-icon
@@ -76,6 +83,17 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Inspect Gradle configuration
+        run: |
+          echo "=== ROOT BUILD GRADLE ==="
+          cat android/build.gradle
+
+          echo "=== APP BUILD GRADLE ==="
+          cat android/app/build.gradle
+
+          echo "=== SETTINGS GRADLE ==="
+          cat android/settings.gradle
 
       - name: Verify launcher configuration
         run: |
