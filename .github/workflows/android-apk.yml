@@ -44,22 +44,38 @@ jobs:
 
       - name: Generate Android project
         run: npx cap add android
-        - name: Inspect Android launcher configuration
-  run: |
-    echo "=== ANDROID MANIFEST ==="
-    cat android/app/src/main/AndroidManifest.xml
-    echo "=== LAUNCHER RESOURCES ==="
-    find android/app/src/main/res -iname '*launcher*' -o -iname '*ic_logo*'
+
+      - name: Inspect generated Android configuration
+        run: |
+          echo "=== ANDROID MANIFEST ==="
+          cat android/app/src/main/AndroidManifest.xml
+
+          echo "=== GENERATED ICON RESOURCES ==="
+          find android/app/src/main/res -type f | sort | grep -E 'launcher|mipmap|ic_logo' || true
 
       - name: Apply NEXORA app icon
         run: |
           mkdir -p /tmp/nexora-icon
           unzip -q nexora-android-icon.zip -d /tmp/nexora-icon
-          find android/app/src/main/res/mipmap-* -type f \( -name 'ic_launcher.webp' -o -name 'ic_launcher_round.webp' \) -delete
+
+          echo "=== ICON ZIP CONTENTS ==="
+          find /tmp/nexora-icon/res -type f | sort
+
           cp -R /tmp/nexora-icon/res/. android/app/src/main/res/
+
+          echo "=== FINAL ICON RESOURCES ==="
+          find android/app/src/main/res -type f | sort | grep -E 'launcher|mipmap|ic_logo' || true
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Verify launcher configuration
+        run: |
+          echo "=== FINAL MANIFEST ==="
+          cat android/app/src/main/AndroidManifest.xml
+
+          echo "=== FINAL ICON FILES ==="
+          find android/app/src/main/res -type f | sort | grep -E 'launcher|mipmap|ic_logo' || true
 
       - name: Build debug APK
         working-directory: android
