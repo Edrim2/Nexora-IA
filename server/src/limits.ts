@@ -1,15 +1,14 @@
 
-interface D1Result<T> {
-  request_count: number;
-}
-
-interface D1Statement {
-  bind(...values: unknown[]): D1Statement;
-  first<T>(): Promise<T | null>;
-}
-
 export interface CoreDatabase {
-  prepare(query: string): D1Statement;
+  prepare(query: string): {
+    bind(...values: unknown[]): {
+      first<T>(): Promise<T | null>;
+    };
+  };
+}
+
+interface D1Count {
+  request_count: number;
 }
 
 export interface RateLimitResult {
@@ -24,6 +23,16 @@ export async function checkRateLimit(
   limit = 30,
   windowSeconds = 60
 ): Promise<RateLimitResult> {
+  if (
+    !deviceId ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    !Number.isInteger(windowSeconds) ||
+    windowSeconds < 1
+  ) {
+    throw new Error("Configuração de limite inválida.");
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const windowStart =
     Math.floor(now / windowSeconds) * windowSeconds;
@@ -40,20 +49,15 @@ export async function checkRateLimit(
     RETURNING request_count
   `)
     .bind(deviceId, windowStart)
-    .first<D1Result<number>>();
+    .first<D1Count>();
 
   if (!result) {
-    throw new Error("Não foi possível verificar o limite.");
+    throw new Error("Falha ao consultar limite de requisições.");
   }
-
-  const remaining = Math.max(
-    0,
-    limit - result.request_count
-  );
 
   return {
     allowed: result.request_count <= limit,
-    remaining,
+    remaining: Math.max(0, limit - result.request_count),
     retryAfter: windowStart + windowSeconds - now
   };
 }
