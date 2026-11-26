@@ -1,9 +1,11 @@
-name: Build Android APK
+
+name: Build NEXORA Android APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "src/**"
       - "native/**"
@@ -19,37 +21,104 @@ permissions:
 
 jobs:
   build:
+    name: Build NEXORA AI
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Configure Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
-      - name: Set up Java
+      - name: Configure Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build web app
+      - name: Build web application
         run: npm run build
 
       - name: Generate Android project
         run: npx cap add android
 
-      - name: Configure Kotlin Android
+      - name: Configure Kotlin
+        shell: bash
         run: |
-          sed -i "/classpath 'com.android.tools.build:gradle:8.2.1'/a\\        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21'" android/build.gradle
+          python3 - <<'PY'
+          from pathlib import Path
 
-          sed -i "/apply plugin: 'com.android.application'/a apply plugin: 'kotlin-android'" android/app/build.gradle
+          root = Path("android/build.gradle")
+          app = Path("android/app/build.gradle")
+
+          root_text = root.read_text()
+          marker = "org.jetbrains.kotlin:kotlin-gradle-plugin"
+
+          if marker not in root_text:
+              target = "classpath 'com.android.tools.build:gradle:8.2.1'"
+              if target not in root_text:
+                  raise SystemExit("Android Gradle Plugin esperado não encontrado.")
+
+              root_text = root_text.replace(
+                  target,
+                  target + "\n        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24'",
+                  1
+              )
+
+          root.write_text(root_text)
+
+          app_text = app.read_text()
+          if "apply plugin: 'kotlin-android'" not in app_text:
+              target = "apply plugin: 'com.android.application'"
+              if target not in app_text:
+                  raise SystemExit("Plugin Android não encontrado.")
+
+              app_text = app_text.replace(
+                  target,
+                  target + "\napply plugin: 'kotlin-android'",
+                  1
+              )
+
+          app.write_text(app_text)
+          PY
+
+      - name: Configure Android network access
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          content = manifest.read_text()
+
+          if 'android.permission.INTERNET' not in content:
+              content = content.replace(
+                  '<manifest',
+                  '<manifest',
+                  1
+              )
+              position = content.find('>')
+              content = (
+                  content[:position + 1]
+                  + '\n    <uses-permission android:name="android.permission.INTERNET" />'
+                  + content[position + 1:]
+              )
+
+          if 'android:usesCleartextTraffic=' not in content:
+              content = content.replace(
+                  '<application',
+                  '<application android:usesCleartextTraffic="true"',
+                  1
+              )
+
+          manifest.write_text(content)
+          PY
 
       - name: Install NEXORA native files
         run: |
@@ -59,67 +128,62 @@ jobs:
           mkdir -p "$JAVA_DIR"
           mkdir -p "$KOTLIN_DIR"
 
-          cp native/android/MainActivity.java "$JAVA_DIR/"
-          cp native/android/LocalAIPlugin.kt "$KOTLIN_DIR/"
+          cp native/android/MainActivity.java "$JAVA_DIR/MainActivity.java"
+          cp native/android/LocalAIPlugin.kt "$KOTLIN_DIR/LocalAIPlugin.kt"
 
-      - name: Inspect generated Android configuration
+      - name: Verify native integration
         run: |
+          echo "=== MAIN ACTIVITY ==="
+          cat android/app/src/main/java/br/com/edrim2/nexoraai/MainActivity.java
+
+          echo "=== LOCAL AI PLUGIN ==="
+          cat android/app/src/main/kotlin/br/com/edrim2/nexoraai/LocalAIPlugin.kt
+
           echo "=== ANDROID MANIFEST ==="
           cat android/app/src/main/AndroidManifest.xml
 
-          echo "=== GENERATED ICON RESOURCES ==="
-          find android/app/src/main/res -type f | sort | grep -E 'launcher|mipmap|ic_logo' || true
-
-          echo "=== INSTALLED MAIN ACTIVITY ==="
-          cat android/app/src/main/java/br/com/edrim2/nexoraai/MainActivity.java
-
-          echo "=== INSTALLED LOCAL AI PLUGIN ==="
-          cat android/app/src/main/kotlin/br/com/edrim2/nexoraai/LocalAIPlugin.kt
-
-      - name: Apply NEXORA app icon
+      - name: Apply NEXORA application icon
         run: |
+          if [ ! -f nexora-android-icon.zip ]; then
+            echo "Icon archive not found."
+            exit 1
+          fi
+
           mkdir -p /tmp/nexora-icon
           unzip -q nexora-android-icon.zip -d /tmp/nexora-icon
 
-          echo "=== ICON ZIP CONTENTS ==="
-          find /tmp/nexora-icon/res -type f | sort
+          if [ ! -d /tmp/nexora-icon/res ]; then
+            echo "Icon archive does not contain a res directory."
+            exit 1
+          fi
 
           cp -R /tmp/nexora-icon/res/. android/app/src/main/res/
           rm -f android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml
 
-          echo "=== FINAL ICON RESOURCES ==="
-          find android/app/src/main/res -type f | sort | grep -E 'launcher|mipmap|ic_logo' || true
-
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Inspect Gradle configuration
-        run: |
-          echo "=== ROOT BUILD GRADLE ==="
-          cat android/build.gradle
-
-          echo "=== APP BUILD GRADLE ==="
-          cat android/app/build.gradle
-
-          echo "=== SETTINGS GRADLE ==="
-          cat android/settings.gradle
-
-      - name: Verify launcher configuration
-        run: |
-          echo "=== FINAL MANIFEST ==="
-          cat android/app/src/main/AndroidManifest.xml
-
-          echo "=== FINAL ICON FILES ==="
-          find android/app/src/main/res -type f | sort | grep -E 'launcher|mipmap|ic_logo' || true
-
-      - name: Build debug APK
+      - name: Build Android APK
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK
+      - name: Verify APK
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -s "$APK" ]; then
+            echo "APK was not generated."
+            exit 1
+          fi
+
+          ls -lh "$APK"
+
+      - name: Upload NEXORA APK
         uses: actions/upload-artifact@v4
         with:
-          name: Nexora-AI-debug-apk
+          name: NEXORA-AI-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
