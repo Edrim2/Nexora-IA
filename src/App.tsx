@@ -22,11 +22,9 @@ const sections: { id: Section; label: string; icon: typeof Bot }[] = [
   { id: "tools", label: "Ferramentas", icon: Wrench }
 ];
 
-const coreUrl = import.meta.env.VITE_NEXORA_CORE_URL ?? "";
-
-const engine = new HybridEngine({
-  cloud: new CloudEngine({ baseUrl: coreUrl }),
-  mode: "cloud"
+cconst engine = new HybridEngine({
+  local: new LocalEngine(),
+  mode: "local"
 });
 
 export default function App() {
