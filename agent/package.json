@@ -1,0 +1,12 @@
+{
+  "name": "@nexora/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "node --test",
+    "check": "node --check src/cli.js && node --check src/server.js && node --check src/workspace.js && node --check src/changes.js && node --check src/providers.js && node --check src/orchestrator.js"
+  }
+}

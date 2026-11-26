@@ -1,51 +1,12 @@
-# NEXORA AI — Android First
+## Desenvolvimento local com NEXORA AGENT
 
-Aplicativo Android em desenvolvimento, construído com React, TypeScript, Vite e Capacitor.
+O agente local independente está em `agent/`. Ele requer Node.js 20+, funciona sem Cloudflare D1 e pode ser iniciado no Termux:
 
-## Estado da versão 0.1.0
-
-- Interface Android-first.
-- Navegação entre áreas planejadas.
-- Layout adaptável para celular.
-- Workflow do GitHub Actions para gerar APK de depuração.
-- **O motor de IA ainda não está conectado.** O chat não simula respostas.
-
-## Requisitos locais
-
-- Node.js 20+
-- npm
-- Android Studio + Android SDK (para build local)
-
-## Executar a interface
-
-```bash
-npm install
-npm run dev
+```sh
+cd agent
+npm test
+npm run check
+npm start -- --project /caminho/do/projeto --provider ollama --model qwen2.5-coder:7b
 ```
 
-## Gerar o projeto Android
-
-```bash
-npm run build
-npx cap add android
-npx cap sync android
-npx cap open android
-```
-
-No Android Studio, compile a variante `debug`.
-
-## Gerar APK pelo GitHub Actions
-
-1. Envie os arquivos deste projeto para a branch `main`.
-2. Abra a aba **Actions** do repositório.
-3. Selecione **Build Android APK**.
-4. Clique em **Run workflow**.
-5. Quando terminar, abra a execução e baixe o artefato `Nexora-AI-debug-apk`.
-
-O APK de depuração é para testes. Para distribuição pública, será necessário configurar assinatura de release.
-
-## Identidade
-
-- Nome: NEXORA AI
-- Application ID: `br.com.edrim2.nexoraai`
-- Versão inicial: `0.1.0`
+Veja `agent/README.md` para provedores, API local, aprovações, backups e limitações de segurança. A API escuta apenas em loopback; a interface web ainda precisa de uma tela própria para conexão e revis��o de diffs.
