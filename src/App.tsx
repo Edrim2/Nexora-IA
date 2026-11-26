@@ -9,6 +9,10 @@ import { HybridEngine } from "./ai/HybridEngine";
 import { CloudEngine } from "./ai/CloudEngine";
 import type { ChatMessage } from "./ai/types";
 
+import { nexoraRuntime } from "./runtime/Runtime";
+import type { CompatibilityResult } from "./compatibility/CompatibilityTypes";
+import type { DeviceInfo, AppStorageInfo } from "./services/DeviceService";
+
 type Section = "chat" | "studio" | "research" | "tools";
 
 const sections: { id: Section; label: string; icon: typeof Bot }[] = [
@@ -34,6 +38,13 @@ export default function App() {
   const [error, setError] = useState("");
   const [cloudConfigured, setCloudConfigured] = useState(false);
 
+  const [runtimeReady, setRuntimeReady] = useState(false);
+  const [runtimeError, setRuntimeError] = useState("");
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
+  const [appStorage, setAppStorage] = useState<AppStorageInfo | null>(null);
+  const [compatibility, setCompatibility] =
+    useState<CompatibilityResult | null>(null);
+
   const endRef = useRef<HTMLDivElement>(null);
 
   const title =
@@ -41,6 +52,49 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+
+    async function initializeRuntime() {
+      try {
+        const status = await nexoraRuntime.initialize();
+
+        if (!active) return;
+
+        if (status.state !== "ready") {
+          setRuntimeError(status.error ?? "Runtime indisponível.");
+          return;
+        }
+
+        setRuntimeReady(true);
+
+        const info = nexoraRuntime.device.getInfo();
+        setDeviceInfo(info);
+
+        const storage = await nexoraRuntime.getAppStorageInfo();
+
+        if (!active) return;
+
+        setAppStorage(storage);
+
+        const result = await nexoraRuntime.evaluateCompatibility({
+          id: "nexora-base",
+          name: "NEXORA Base",
+          platforms: ["android", "ios", "web"],
+          minLogicalCores: 2
+        });
+
+        if (active) setCompatibility(result);
+      } catch (err) {
+        if (active) {
+          setRuntimeError(
+            err instanceof Error
+              ? err.message
+              : "Falha ao inicializar o NEXORA Core."
+          );
+        }
+      }
+    }
+
+    initializeRuntime();
 
     engine.getStatus().then(status => {
       if (active) setCloudConfigured(status.cloud);
@@ -106,6 +160,11 @@ export default function App() {
     setError("");
     setSection("chat");
     setDrawer(false);
+  }
+
+  function formatGB(value: number | null | undefined): string {
+    if (value === null || value === undefined) return "Não identificado";
+    return `${value.toFixed(2)} GB`;
   }
 
   return (
@@ -314,7 +373,77 @@ export default function App() {
                 </button>
               </div>
 
-              {section !== "chat" && (
+              {section === "tools" ? (
+                <div className="module-note">
+                  <Cpu size={20} />
+                  <div>
+                    <b>NEXORA Core · Diagnóstico do dispositivo</b>
+
+                    <span>
+                      Runtime: {runtimeReady ? "Inicializado" : "Aguardando"}
+                    </span>
+
+                    {runtimeError && (
+                      <span>Erro: {runtimeError}</span>
+                    )}
+
+                    <span>
+                      Plataforma: {deviceInfo?.platform ?? "Não identificada"}
+                    </span>
+
+                    <span>
+                      Execução nativa: {deviceInfo
+                        ? deviceInfo.native ? "Sim" : "Não"
+                        : "Não identificada"}
+                    </span>
+
+                    <span>
+                      Núcleos lógicos: {deviceInfo?.logicalCores ?? "Não identificados"}
+                    </span>
+
+                    <span>
+                      RAM estimada: {formatGB(deviceInfo?.memoryEstimateGB)}
+                    </span>
+
+                    <span>
+                      Armazenamento da aplicação: {formatGB(appStorage?.usageGB)}
+                    </span>
+
+                    <span>
+                      Cota estimada da aplicação: {formatGB(appStorage?.quotaGB)}
+                    </span>
+
+                    <span>
+                      Conexão: {deviceInfo
+                        ? deviceInfo.online ? "Online" : "Offline"
+                        : "Não identificada"}
+                    </span>
+
+                    <span>
+                      Compatibilidade NCS: {
+                        compatibility?.level ?? "Não testada"
+                      }
+                    </span>
+
+                    {compatibility?.passed.map((item, index) => (
+                      <span key={`passed-${index}`}>✓ {item}</span>
+                    ))}
+
+                    {compatibility?.unknown.map((item, index) => (
+                      <span key={`unknown-${index}`}>? {item}</span>
+                    ))}
+
+                    {compatibility?.failed.map((item, index) => (
+                      <span key={`failed-${index}`}>✕ {item}</span>
+                    ))}
+
+                    <small>
+                      Diagnóstico inicial. Algumas informações podem não estar
+                      disponíveis no navegador ou Android WebView.
+                    </small>
+                  </div>
+                </div>
+              ) : section !== "chat" ? (
                 <div className="module-note">
                   <Sparkles size={18} />
                   <div>
@@ -324,7 +453,7 @@ export default function App() {
                     </span>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           )}
 
