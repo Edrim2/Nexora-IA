@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 import { HybridEngine } from "./ai/HybridEngine";
-import { CloudEngine } from "./ai/CloudEngine";
+import { LocalEngine } from "./ai/LocalEngine";
 import type { ChatMessage } from "./ai/types";
 
 import { nexoraRuntime } from "./runtime/Runtime";
