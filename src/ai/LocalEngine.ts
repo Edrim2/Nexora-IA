@@ -1,4 +1,3 @@
-
 import { registerPlugin } from "@capacitor/core";
 
 import type {
@@ -59,7 +58,7 @@ export class LocalEngine implements AIEngine {
     const result = await LocalAI.generate({
       payload: JSON.stringify({
         messages,
-        max_tokens: 512,
+        max_tokens: 128,
         temperature: 0.7
       })
     });
