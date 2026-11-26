@@ -1,5 +1,6 @@
 
 import { registerPlugin } from "@capacitor/core";
+
 import type {
   AIEngine,
   ChatMessage,
@@ -13,6 +14,7 @@ interface LocalAIPlugin {
     engine: string;
     message: string;
   }>;
+
   generate(options: {
     payload: string;
   }): Promise<{
@@ -40,12 +42,18 @@ export class LocalEngine implements AIEngine {
     options: GenerateOptions
   ): Promise<GenerateResult> {
     if (options.signal?.aborted) {
-      throw new DOMException("Operação cancelada.", "AbortError");
+      throw new DOMException(
+        "Operação cancelada.",
+        "AbortError"
+      );
     }
 
     const messages: ChatMessage[] = [
       ...options.history,
-      { role: "user", content: prompt }
+      {
+        role: "user",
+        content: prompt
+      }
     ];
 
     const result = await LocalAI.generate({
@@ -57,7 +65,9 @@ export class LocalEngine implements AIEngine {
     });
 
     if (!result.text?.trim()) {
-      throw new Error("O motor local não retornou uma resposta.");
+      throw new Error(
+        "O motor local não retornou uma resposta."
+      );
     }
 
     return {
@@ -66,4 +76,4 @@ export class LocalEngine implements AIEngine {
       model: result.model
     };
   }
-  }
+}
