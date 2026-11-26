@@ -22,7 +22,7 @@ const sections: { id: Section; label: string; icon: typeof Bot }[] = [
   { id: "tools", label: "Ferramentas", icon: Wrench }
 ];
 
-cconst engine = new HybridEngine({
+const engine = new HybridEngine({
   local: new LocalEngine(),
   mode: "local"
 });
@@ -34,7 +34,7 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [cloudConfigured, setCloudConfigured] = useState(false);
+  const [localConfigured, setLocalConfigured] = useState(false);
 
   const [runtimeReady, setRuntimeReady] = useState(false);
   const [runtimeError, setRuntimeError] = useState("");
@@ -95,9 +95,9 @@ export default function App() {
     initializeRuntime();
 
     engine.getStatus().then(status => {
-      if (active) setCloudConfigured(status.cloud);
+      if (active) setLocalConfigured(status.local);
     }).catch(() => {
-      if (active) setCloudConfigured(false);
+      if (active) setLocalConfigured(false);
     });
 
     return () => {
@@ -142,7 +142,7 @@ export default function App() {
     } catch (err) {
       const message = err instanceof Error
         ? err.message
-        : "Não foi possível conectar ao motor de IA.";
+        : "Não foi possível conectar ao motor local.";
 
       setError(message);
     } finally {
@@ -233,9 +233,9 @@ export default function App() {
             <div>
               <b>Motor de IA</b>
               <small>
-                {cloudConfigured
-                  ? "Servidor configurado"
-                  : "Aguardando servidor"}
+                {localConfigured
+                  ? "Motor local conectado"
+                  : "Aguardando NEXORA Core"}
               </small>
             </div>
 
@@ -460,9 +460,9 @@ export default function App() {
               <span>ASSISTENTE</span>
               <span className="offline">
                 <i />
-                {cloudConfigured
-                  ? "SERVIDOR CONFIGURADO"
-                  : "AGUARDANDO CONEXÃO"}
+                {localConfigured
+                  ? "IA LOCAL CONECTADA"
+                  : "AGUARDANDO MOTOR LOCAL"}
               </span>
             </div>
 
@@ -479,7 +479,7 @@ export default function App() {
                 <span>
                   {loading
                     ? "NEXORA está processando..."
-                    : "As respostas dependem de um motor conectado."}
+                    : "IA executada localmente neste dispositivo."}
                 </span>
 
                 <button
