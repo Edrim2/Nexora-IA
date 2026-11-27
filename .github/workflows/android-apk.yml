@@ -1,5 +1,5 @@
 
-name: Build NEXORA Android APK
+name: Build NEXORA AI APK
 
 on:
   workflow_dispatch:
@@ -12,6 +12,7 @@ on:
       - "assets/**"
       - "nexora-android-icon.zip"
       - "package.json"
+      - "package-lock.json"
       - "capacitor.config.ts"
       - ".github/workflows/android-apk.yml"
 
@@ -20,100 +21,38 @@ permissions:
 
 jobs:
   build:
-    name: Build NEXORA AI
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Configure Java
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build web application
+      - name: Build web app
         run: npm run build
 
       - name: Generate Android project
         run: npx cap add android
 
       - name: Configure Kotlin
-        shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
+          sed -i "/classpath 'com.android.tools.build:gradle:8.2.1'/a\\        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'" android/build.gradle
 
-          root = Path("android/build.gradle")
-          app = Path("android/app/build.gradle")
-
-          root_text = root.read_text()
-          marker = "org.jetbrains.kotlin:kotlin-gradle-plugin"
-
-          if marker not in root_text:
-              target = "classpath 'com.android.tools.build:gradle:8.2.1'"
-              if target not in root_text:
-                  raise SystemExit("Android Gradle Plugin esperado não encontrado.")
-
-              root_text = root_text.replace(
-                  target,
-                  target + "\n        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24'",
-                  1
-              )
-
-          root.write_text(root_text)
-
-          app_text = app.read_text()
-
-          if "apply plugin: 'kotlin-android'" not in app_text:
-              target = "apply plugin: 'com.android.application'"
-
-              if target not in app_text:
-                  raise SystemExit("Plugin Android não encontrado.")
-
-              app_text = app_text.replace(
-                  target,
-                  target + "\napply plugin: 'kotlin-android'",
-                  1
-              )
-
-          app.write_text(app_text)
-          PY
-
-      - name: Configure Android network access
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          content = manifest.read_text()
-
-          if 'android.permission.INTERNET' not in content:
-              position = content.find('>')
-              content = (
-                  content[:position + 1]
-                  + '\n    <uses-permission android:name="android.permission.INTERNET" />'
-                  + content[position + 1:]
-              )
-
-          if 'android:usesCleartextTraffic=' not in content:
-              content = content.replace(
-                  '<application',
-                  '<application android:usesCleartextTraffic="true"',
-                  1
-              )
-
-          manifest.write_text(content)
-          PY
+          sed -i "/apply plugin: 'com.android.application'/a apply plugin: 'kotlin-android'" android/app/build.gradle
 
       - name: Install NEXORA native files
         run: |
@@ -122,8 +61,46 @@ jobs:
 
           mkdir -p "$JAVA_DIR" "$KOTLIN_DIR"
 
-          cp native/android/MainActivity.java "$JAVA_DIR/MainActivity.java"
-          cp native/android/LocalAIPlugin.kt "$KOTLIN_DIR/LocalAIPlugin.kt"
+          cp native/android/MainActivity.java "$JAVA_DIR/"
+          cp native/android/LocalAIPlugin.kt "$KOTLIN_DIR/"
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Configure Android network access
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+
+          if "android.permission.INTERNET" not in s:
+              s = s.replace(
+                  "<application",
+                  '<uses-permission android:name="android.permission.INTERNET" />\n<application',
+                  1
+              )
+
+          if "android:usesCleartextTraffic" not in s:
+              s = s.replace(
+                  "<application",
+                  '<application android:usesCleartextTraffic="true"',
+                  1
+              )
+
+          p.write_text(s)
+          PY
+
+      - name: Apply NEXORA app icon
+        run: |
+          if [ -f nexora-android-icon.zip ]; then
+            mkdir -p /tmp/nexora-icon
+            unzip -q nexora-android-icon.zip -d /tmp/nexora-icon
+            cp -R /tmp/nexora-icon/res/. android/app/src/main/res/
+          else
+            echo "Custom icon archive not found. Using default icon."
+          fi
 
       - name: Verify native integration
         run: |
@@ -133,51 +110,19 @@ jobs:
           echo "=== LOCAL AI PLUGIN ==="
           cat android/app/src/main/kotlin/br/com/edrim2/nexoraai/LocalAIPlugin.kt
 
-          echo "=== ANDROID MANIFEST ==="
+          echo "=== MANIFEST ==="
           cat android/app/src/main/AndroidManifest.xml
 
-      - name: Apply NEXORA application icon
-        run: |
-          if [ ! -f nexora-android-icon.zip ]; then
-            echo "Icon archive not found."
-            exit 1
-          fi
-
-          mkdir -p /tmp/nexora-icon
-          unzip -q nexora-android-icon.zip -d /tmp/nexora-icon
-
-          if [ ! -d /tmp/nexora-icon/res ]; then
-            echo "Icon archive does not contain a res directory."
-            exit 1
-          fi
-
-          cp -R /tmp/nexora-icon/res/. android/app/src/main/res/
-          rm -f android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml
-
-      - name: Sync Capacitor
-        run: npx cap sync android
-
-      - name: Build Android APK
+      - name: Build debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew --no-daemon assembleDebug
 
-      - name: Verify APK
-        run: |
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
-
-          if [ ! -s "$APK" ]; then
-            echo "APK was not generated."
-            exit 1
-          fi
-
-          ls -lh "$APK"
-
-      - name: Upload NEXORA APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NEXORA-AI-debug-apk
+          name: NEXORA-AI-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
